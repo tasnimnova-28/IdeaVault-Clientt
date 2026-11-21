@@ -1,15 +1,28 @@
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Lightbulb, Search, LoaderCircle } from 'lucide-react'
+import {
+  Lightbulb,
+  Search,
+  LoaderCircle,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react'
+
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ideas`
 
 export default function Ideas() {
   const [ideas, setIdeas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const [searchTerm, setSearchTerm] = useState('')
+  const [category, setCategory] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+
   useEffect(() => {
-    fetch('http://localhost:5000/api/ideas')
+    fetch(API_URL)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch ideas')
@@ -25,6 +38,45 @@ export default function Ideas() {
         setLoading(false)
       })
   }, [])
+
+  const filteredIdeas = useMemo(() => {
+    return ideas.filter((idea) => {
+      const matchesSearch = idea.title
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase())
+
+      const matchesCategory =
+        !category || idea.category === category
+
+      const ideaDate = idea.createdAt
+        ? new Date(idea.createdAt)
+        : null
+
+      const matchesStartDate =
+        !startDate ||
+        (ideaDate && ideaDate >= new Date(`${startDate}T00:00:00`))
+
+      const matchesEndDate =
+        !endDate ||
+        (ideaDate && ideaDate <= new Date(`${endDate}T23:59:59.999`))
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesStartDate &&
+        matchesEndDate
+      )
+    })
+  }, [ideas, searchTerm, category, startDate, endDate])
+
+  const resetFilters = () => {
+    setSearchTerm('')
+    setCategory('')
+    setStartDate('')
+    setEndDate('')
+  }
+
+  const hasFilters = searchTerm || category || startDate || endDate
 
   return (
     <div className="min-h-screen px-4 py-12">
@@ -46,6 +98,110 @@ export default function Ideas() {
           </p>
         </div>
 
+        {/* Search and Filters */}
+        <div className="bg-base-200 rounded-2xl p-5 mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <SlidersHorizontal size={20} className="text-primary" />
+            <h2 className="font-semibold text-lg">Search & Filter Ideas</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            {/* Search */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Search by Title</span>
+              </label>
+
+              <div className="relative">
+                <Search
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 opacity-50"
+                />
+
+                <input
+                  type="text"
+                  placeholder="Search ideas..."
+                  className="input input-bordered w-full pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Category */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Category</span>
+              </label>
+
+              <select
+                className="select select-bordered w-full"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="">All Categories</option>
+                <option value="Technology">Technology</option>
+                <option value="Education">Education</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="E-commerce">E-commerce</option>
+                <option value="Environment">Environment</option>
+                <option value="Food">Food</option>
+                <option value="Finance">Finance</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* Start Date */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">From Date</span>
+              </label>
+
+              <input
+                type="date"
+                className="input input-bordered w-full"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+
+            {/* End Date */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">To Date</span>
+              </label>
+
+              <input
+                type="date"
+                className="input input-bordered w-full"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Results Count and Reset */}
+          <div className="flex flex-wrap justify-between items-center gap-3 mt-5">
+            <p className="text-sm opacity-70">
+              Showing <strong>{filteredIdeas.length}</strong> of{' '}
+              <strong>{ideas.length}</strong> ideas
+            </p>
+
+            {hasFilters && (
+              <button
+                onClick={resetFilters}
+                className="btn btn-ghost btn-sm"
+              >
+                <X size={16} />
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Loading */}
         {loading && (
           <div className="flex justify-center py-20">
@@ -61,25 +217,36 @@ export default function Ideas() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && ideas.length === 0 && (
+        {!loading && !error && filteredIdeas.length === 0 && (
           <div className="text-center py-20">
             <Lightbulb size={48} className="mx-auto mb-4 opacity-40" />
 
             <h2 className="text-2xl font-semibold mb-2">
-              No ideas yet
+              {ideas.length === 0 ? 'No ideas yet' : 'No matching ideas found'}
             </h2>
 
             <p className="opacity-70">
-              Be the first to share a startup idea!
+              {ideas.length === 0
+                ? 'Be the first to share a startup idea!'
+                : 'Try changing your search or filters.'}
             </p>
+
+            {hasFilters && (
+              <button
+                onClick={resetFilters}
+                className="btn btn-primary btn-sm mt-5"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         )}
 
         {/* Ideas Grid */}
-        {!loading && !error && ideas.length > 0 && (
+        {!loading && !error && filteredIdeas.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-            {ideas.map((idea) => (
+            {filteredIdeas.map((idea) => (
               <div
                 key={idea._id}
                 className="card bg-base-100 border border-base-300 shadow-sm hover:shadow-lg transition-all duration-300"
