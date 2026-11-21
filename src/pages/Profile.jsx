@@ -1,3 +1,4 @@
+import usePageTitle from '../hooks/usePageTitle'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 import { CalendarDays, Clock, Lock, Mail, ShieldCheck } from 'lucide-react'
@@ -14,6 +15,7 @@ const providerLabels = {
 }
 
 export default function Profile() {
+    usePageTitle('Profile')
   const { user, updateUserProfile } = useAuth()
   // This page only renders for signed-in people (PrivateRoute), so `user` is always set here
   const [name, setName] = useState(user.displayName)

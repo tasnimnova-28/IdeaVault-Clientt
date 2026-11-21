@@ -1,4 +1,5 @@
 
+import usePageTitle from '../hooks/usePageTitle'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -32,6 +33,7 @@ const emptyForm = {
 }
 
 export default function MyIdeas() {
+    usePageTitle('My Ideas')
   const { user, loading: authLoading } = useAuth()
 
   const [ideas, setIdeas] = useState([])

@@ -1,3 +1,4 @@
+import usePageTitle from '../hooks/usePageTitle'
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
@@ -14,6 +15,7 @@ import { getAuthErrorMessage, isQuietAuthError } from '../utils/authErrors'
 import { isValidEmail } from '../utils/validators'
 
 export default function Login() {
+    usePageTitle('Login')
   const { login, loginWithGoogle } = useAuth()
   const location = useLocation()
   // PrivateRoute passes the page the person wanted in `location.state.from`

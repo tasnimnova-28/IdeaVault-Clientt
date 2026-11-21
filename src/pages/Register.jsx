@@ -1,3 +1,4 @@
+import usePageTitle from '../hooks/usePageTitle'
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
@@ -14,6 +15,7 @@ import { getAuthErrorMessage, isQuietAuthError } from '../utils/authErrors'
 import { isStrongPassword, isValidEmail, isValidImageUrl } from '../utils/validators'
 
 export default function Register() {
+    usePageTitle('Register')
   const { register, loginWithGoogle } = useAuth()
   const location = useLocation()
   const [form, setForm] = useState({ name: '', email: '', photoURL: '', password: '', confirmPassword: '' })

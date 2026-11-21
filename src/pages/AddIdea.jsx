@@ -1,4 +1,5 @@
 
+import usePageTitle from '../hooks/usePageTitle'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Lightbulb, Send, LoaderCircle } from 'lucide-react'
@@ -8,6 +9,7 @@ import { toast } from 'react-toastify'
 const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ideas`
 
 export default function AddIdea() {
+    usePageTitle('Add Idea')
   const { user } = useAuth()
   const navigate = useNavigate()
 

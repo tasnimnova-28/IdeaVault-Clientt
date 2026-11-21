@@ -1,6 +1,8 @@
+import usePageTitle from '../hooks/usePageTitle'
 import { Link } from 'react-router-dom'
 
 export default function NotFound() {
+  usePageTitle('404 - Not Found')
   return (
     <section className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-4 py-20 text-center">
       <p className="font-display text-8xl font-semibold text-primary sm:text-9xl">404</p>

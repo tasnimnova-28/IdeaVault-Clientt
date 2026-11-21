@@ -1,4 +1,5 @@
 
+import usePageTitle from '../hooks/usePageTitle'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
@@ -23,6 +24,7 @@ import useAuth from '../hooks/useAuth'
 const API_URL = 'http://localhost:5000/api/ideas'
 
 export default function IdeaDetails() {
+  usePageTitle('Idea Details')
   const { id } = useParams()
   const { user } = useAuth()
 
