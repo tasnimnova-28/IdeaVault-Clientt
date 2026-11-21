@@ -11,17 +11,40 @@ import {
   Wallet,
   Users,
   Tag,
+  Send,
+  Pencil,
+  Trash2,
+  X,
+  Check,
 } from 'lucide-react'
+
+import useAuth from '../hooks/useAuth'
+
+const API_URL = 'http://localhost:5000/api/ideas'
 
 export default function IdeaDetails() {
   const { id } = useParams()
+  const { user } = useAuth()
 
   const [idea, setIdea] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const [commentText, setCommentText] = useState('')
+  const [commentLoading, setCommentLoading] = useState(false)
+  const [commentError, setCommentError] = useState('')
+
+  const [editingCommentId, setEditingCommentId] = useState(null)
+  const [editingText, setEditingText] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [deletingCommentId, setDeletingCommentId] = useState(null)
+
+  // Fetch idea details
   useEffect(() => {
-    fetch(`http://localhost:5000/api/ideas/${id}`)
+    setLoading(true)
+    setError('')
+
+    fetch(`${API_URL}/${id}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Idea not found')
@@ -38,6 +61,136 @@ export default function IdeaDetails() {
       })
   }, [id])
 
+  // Add comment
+  const handleAddComment = async (e) => {
+    e.preventDefault()
+
+    if (!user) {
+      setCommentError('Please log in to comment.')
+      return
+    }
+
+    if (!commentText.trim()) {
+      setCommentError('Comment cannot be empty.')
+      return
+    }
+
+    setCommentLoading(true)
+    setCommentError('')
+
+    try {
+      const response = await fetch(`${API_URL}/${id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.uid,
+          userName: user.displayName || user.email,
+          text: commentText.trim(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to add comment')
+      }
+
+      setIdea(data)
+      setCommentText('')
+    } catch (err) {
+      setCommentError(err.message)
+    } finally {
+      setCommentLoading(false)
+    }
+  }
+
+  // Start editing a comment
+  const handleEditStart = (comment) => {
+    setEditingCommentId(comment._id)
+    setEditingText(comment.text)
+    setActionError('')
+  }
+
+  // Save edited comment
+  const handleEditComment = async (commentId) => {
+    if (!editingText.trim()) {
+      setActionError('Comment cannot be empty.')
+      return
+    }
+
+    setActionError('')
+
+    try {
+      const response = await fetch(
+        `${API_URL}/${id}/comments/${commentId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.uid,
+            text: editingText.trim(),
+          }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update comment')
+      }
+
+      setIdea(data)
+      setEditingCommentId(null)
+      setEditingText('')
+    } catch (err) {
+      setActionError(err.message)
+    }
+  }
+
+  // Delete comment
+  const handleDeleteComment = async (commentId) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this comment?'
+    )
+
+    if (!confirmed) return
+
+    setDeletingCommentId(commentId)
+    setActionError('')
+
+    try {
+      const response = await fetch(
+        `${API_URL}/${id}/comments/${commentId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.uid,
+          }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete comment')
+      }
+
+      setIdea(data)
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setDeletingCommentId(null)
+    }
+  }
+
+  // Loading screen
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
@@ -46,15 +199,12 @@ export default function IdeaDetails() {
     )
   }
 
+  // Error screen
   if (error || !idea) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4">
         <Lightbulb size={48} className="opacity-40" />
-
-        <h2 className="text-2xl font-bold">
-          Idea not found
-        </h2>
-
+        <h2 className="text-2xl font-bold">Idea not found</h2>
         <Link to="/ideas" className="btn btn-primary">
           Back to Ideas
         </Link>
@@ -67,10 +217,7 @@ export default function IdeaDetails() {
       <div className="max-w-5xl mx-auto">
 
         {/* Back Button */}
-        <Link
-          to="/ideas"
-          className="btn btn-ghost mb-6 gap-2"
-        >
+        <Link to="/ideas" className="btn btn-ghost mb-6 gap-2">
           <ArrowLeft size={18} />
           Back to Ideas
         </Link>
@@ -124,7 +271,6 @@ export default function IdeaDetails() {
             <h2 className="text-2xl font-bold mb-3">
               About This Idea
             </h2>
-
             <p className="leading-8 opacity-80 whitespace-pre-wrap">
               {idea.detailedDescription}
             </p>
@@ -138,7 +284,6 @@ export default function IdeaDetails() {
               <h2 className="text-2xl font-bold mb-3">
                 The Problem
               </h2>
-
               <p className="leading-8 opacity-80 whitespace-pre-wrap">
                 {idea.problemStatement}
               </p>
@@ -153,7 +298,6 @@ export default function IdeaDetails() {
               <h2 className="text-2xl font-bold mb-3">
                 Proposed Solution
               </h2>
-
               <p className="leading-8 opacity-80 whitespace-pre-wrap">
                 {idea.proposedSolution}
               </p>
@@ -164,35 +308,25 @@ export default function IdeaDetails() {
         {/* Additional Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
-          {/* Target Audience */}
           {idea.targetAudience && (
             <div className="card bg-base-100 border border-base-300 shadow-sm">
               <div className="card-body">
                 <div className="flex items-center gap-2 text-primary">
                   <Users size={20} />
-                  <h2 className="font-bold text-lg">
-                    Target Audience
-                  </h2>
+                  <h2 className="font-bold text-lg">Target Audience</h2>
                 </div>
-
-                <p className="opacity-80">
-                  {idea.targetAudience}
-                </p>
+                <p className="opacity-80">{idea.targetAudience}</p>
               </div>
             </div>
           )}
 
-          {/* Budget */}
           {idea.budget > 0 && (
             <div className="card bg-base-100 border border-base-300 shadow-sm">
               <div className="card-body">
                 <div className="flex items-center gap-2 text-primary">
                   <Wallet size={20} />
-                  <h2 className="font-bold text-lg">
-                    Estimated Budget
-                  </h2>
+                  <h2 className="font-bold text-lg">Estimated Budget</h2>
                 </div>
-
                 <p className="text-2xl font-bold">
                   ৳{idea.budget.toLocaleString('en-BD')}
                 </p>
@@ -207,11 +341,8 @@ export default function IdeaDetails() {
             <div className="card-body">
               <div className="flex items-center gap-2 mb-3">
                 <Tag size={20} className="text-primary" />
-                <h2 className="text-xl font-bold">
-                  Tags
-                </h2>
+                <h2 className="text-xl font-bold">Tags</h2>
               </div>
-
               <div className="flex flex-wrap gap-2">
                 {idea.tags.map((tag, index) => (
                   <span key={index} className="badge badge-outline badge-lg">
@@ -222,6 +353,158 @@ export default function IdeaDetails() {
             </div>
           </div>
         )}
+
+        {/* Comments Section */}
+        <div className="card bg-base-100 border border-base-300 shadow-sm mt-10">
+          <div className="card-body">
+
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <MessageCircle size={24} />
+              Comments ({idea.comments?.length || 0})
+            </h2>
+
+            {/* Add Comment Form */}
+            {user ? (
+              <form onSubmit={handleAddComment} className="mt-4">
+                <textarea
+                  className="textarea textarea-bordered w-full min-h-28"
+                  placeholder="Share your thoughts about this idea..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  maxLength={1000}
+                />
+
+                {commentError && (
+                  <p className="text-error text-sm mt-2">
+                    {commentError}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn btn-primary mt-3"
+                  disabled={commentLoading || !commentText.trim()}
+                >
+                  {commentLoading ? (
+                    <LoaderCircle size={18} className="animate-spin" />
+                  ) : (
+                    <Send size={18} />
+                  )}
+                  Post Comment
+                </button>
+              </form>
+            ) : (
+              <p className="mt-4 opacity-70">
+                Please <Link to="/login" className="link link-primary">log in</Link> to leave a comment.
+              </p>
+            )}
+
+            {/* Comment Error */}
+            {actionError && (
+              <p className="text-error text-sm mt-3">{actionError}</p>
+            )}
+
+            {/* Comment List */}
+            <div className="mt-6 space-y-4">
+              {idea.comments?.length > 0 ? (
+                [...idea.comments].reverse().map((comment) => {
+                  const isOwner = user?.uid === comment.userId
+                  const isEditing = editingCommentId === comment._id
+
+                  return (
+                    <div
+                      key={comment._id}
+                      className="border border-base-300 rounded-xl p-4"
+                    >
+                      <div className="flex flex-wrap justify-between gap-3">
+
+                        <div>
+                          <p className="font-semibold">
+                            {comment.userName}
+                          </p>
+                          <p className="text-xs opacity-60 mt-1">
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+
+                        {isOwner && !isEditing && (
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => handleEditStart(comment)}
+                              title="Edit comment"
+                            >
+                              <Pencil size={16} />
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm text-error"
+                              onClick={() => handleDeleteComment(comment._id)}
+                              disabled={deletingCommentId === comment._id}
+                              title="Delete comment"
+                            >
+                              {deletingCommentId === comment._id ? (
+                                <LoaderCircle size={16} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={16} />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {isEditing ? (
+                        <div className="mt-3">
+                          <textarea
+                            className="textarea textarea-bordered w-full"
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            maxLength={1000}
+                          />
+
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => handleEditComment(comment._id)}
+                              disabled={!editingText.trim()}
+                            >
+                              <Check size={16} />
+                              Save
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => {
+                                setEditingCommentId(null)
+                                setEditingText('')
+                                setActionError('')
+                              }}
+                            >
+                              <X size={16} />
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-3 whitespace-pre-wrap leading-7 opacity-80">
+                          {comment.text}
+                        </p>
+                      )}
+                    </div>
+                  )
+                })
+              ) : (
+                <p className="text-center opacity-60 py-8">
+                  No comments yet. Be the first to share your thoughts!
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Bottom Button */}
         <div className="text-center mt-10">
