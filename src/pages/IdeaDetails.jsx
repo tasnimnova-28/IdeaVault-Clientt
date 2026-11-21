@@ -39,6 +39,10 @@ export default function IdeaDetails() {
   const [actionError, setActionError] = useState('')
   const [deletingCommentId, setDeletingCommentId] = useState(null)
 
+  // Like states
+  const [likeLoading, setLikeLoading] = useState(false)
+  const [likeError, setLikeError] = useState('')
+
   // Fetch idea details
   useEffect(() => {
     setLoading(true)
@@ -60,6 +64,44 @@ export default function IdeaDetails() {
         setLoading(false)
       })
   }, [id])
+
+  // Check whether current user liked this idea
+  const isLiked = idea?.likes?.includes(user?.uid)
+
+  // Like / Unlike idea
+  const handleLike = async () => {
+    if (!user) {
+      setLikeError('Please log in to like this idea.')
+      return
+    }
+
+    setLikeLoading(true)
+    setLikeError('')
+
+    try {
+      const response = await fetch(`${API_URL}/${id}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.uid,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update like')
+      }
+
+      setIdea(data.idea)
+    } catch (err) {
+      setLikeError(err.message)
+    } finally {
+      setLikeLoading(false)
+    }
+  }
 
   // Add comment
   const handleAddComment = async (e) => {
@@ -262,6 +304,42 @@ export default function IdeaDetails() {
               <MessageCircle size={16} />
               {idea.comments?.length || 0} Comments
             </span>
+          </div>
+
+          {/* Like Button */}
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={handleLike}
+              disabled={likeLoading}
+              className={`btn gap-2 ${
+                isLiked ? 'btn-error' : 'btn-outline'
+              }`}
+            >
+              {likeLoading ? (
+                <LoaderCircle size={18} className="animate-spin" />
+              ) : (
+                <Heart
+                  size={18}
+                  fill={isLiked ? 'currentColor' : 'none'}
+                />
+              )}
+
+              {isLiked ? 'Unlike' : 'Like'}
+              ({idea.likes?.length || 0})
+            </button>
+
+            {likeError && (
+              <p className="text-error text-sm mt-2">
+                {likeError}
+              </p>
+            )}
+
+            {!user && (
+              <p className="text-sm opacity-60 mt-2">
+                Please <Link to="/login" className="link link-primary">log in</Link> to like this idea.
+              </p>
+            )}
           </div>
         </div>
 
