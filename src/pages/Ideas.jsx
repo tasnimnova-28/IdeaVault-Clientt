@@ -296,6 +296,13 @@ export default function Ideas() {
                       </span>
                     ))}
                   </div>
+                  {/* Budget */}
+<div className="flex items-center justify-between mt-4 pt-3 border-t border-base-300">
+  <span className="text-sm opacity-70">Estimated Budget</span>
+  <span className="font-semibold">
+    ৳{Number(idea.budget || 0).toLocaleString('en-BD')}
+  </span>
+</div>
 
                   {/* View Details */}
                   <div className="card-actions justify-end mt-4">
