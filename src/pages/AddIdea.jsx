@@ -9,8 +9,9 @@ import { toast } from 'react-toastify'
 const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ideas`
 
 export default function AddIdea() {
-    usePageTitle('Add Idea')
-  const { user } = useAuth()
+  usePageTitle('Add Idea')
+
+  const { user, getIdToken } = useAuth()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(false)
@@ -54,16 +55,16 @@ export default function AddIdea() {
         .map((tag) => tag.trim())
         .filter(Boolean),
       budget: Number(formData.budget) || 0,
-      authorId: user.uid,
-      authorName: user.displayName || 'Anonymous',
-      authorEmail: user.email,
     }
 
     try {
+      const token = await getIdToken()
+
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(ideaData),
       })
@@ -75,7 +76,7 @@ export default function AddIdea() {
       }
 
       toast.success('Your startup idea was published!')
-      navigate(`/ideas/${data.idea._id}`)
+      navigate(`/ideas/${data._id}`)
     } catch (error) {
       toast.error(error.message || 'Something went wrong.')
     } finally {
@@ -83,11 +84,8 @@ export default function AddIdea() {
     }
   }
 
-  const inputClass =
-    'input input-bordered w-full'
-
-  const textareaClass =
-    'textarea textarea-bordered w-full'
+  const inputClass = 'input input-bordered w-full'
+  const textareaClass = 'textarea textarea-bordered w-full'
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
