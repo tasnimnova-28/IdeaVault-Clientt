@@ -13,7 +13,7 @@ import {
 
 import useAuth from '../hooks/useAuth'
 
-const API_URL = 'http://localhost:5000/api/ideas'
+const API_URL = `${import.meta.env.VITE_API_URL}/ideas`
 
 export default function MyInteractions() {
     usePageTitle('My Interactions')
