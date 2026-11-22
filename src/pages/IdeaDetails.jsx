@@ -21,12 +21,12 @@ import {
 
 import useAuth from '../hooks/useAuth'
 
-const API_URL = 'http://localhost:5000/api/ideas'
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ideas`
 
 export default function IdeaDetails() {
   usePageTitle('Idea Details')
   const { id } = useParams()
-  const { user } = useAuth()
+  const { user, getIdToken } = useAuth()
 
   const [idea, setIdea] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -41,11 +41,10 @@ export default function IdeaDetails() {
   const [actionError, setActionError] = useState('')
   const [deletingCommentId, setDeletingCommentId] = useState(null)
 
-  // Like states
   const [likeLoading, setLikeLoading] = useState(false)
   const [likeError, setLikeError] = useState('')
 
-  // Fetch idea details
+  // Fetch idea details (public route)
   useEffect(() => {
     setLoading(true)
     setError('')
@@ -67,7 +66,6 @@ export default function IdeaDetails() {
       })
   }, [id])
 
-  // Check whether current user liked this idea
   const isLiked = idea?.likes?.includes(user?.uid)
 
   // Like / Unlike idea
@@ -81,14 +79,13 @@ export default function IdeaDetails() {
     setLikeError('')
 
     try {
+      const token = await getIdToken()
+
       const response = await fetch(`${API_URL}/${id}/like`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          userId: user.uid,
-        }),
       })
 
       const data = await response.json()
@@ -123,14 +120,15 @@ export default function IdeaDetails() {
     setCommentError('')
 
     try {
+      const token = await getIdToken()
+
       const response = await fetch(`${API_URL}/${id}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          userId: user.uid,
-          userName: user.displayName || user.email,
           text: commentText.trim(),
         }),
       })
@@ -167,15 +165,17 @@ export default function IdeaDetails() {
     setActionError('')
 
     try {
+      const token = await getIdToken()
+
       const response = await fetch(
         `${API_URL}/${id}/comments/${commentId}`,
         {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            userId: user.uid,
             text: editingText.trim(),
           }),
         }
@@ -207,16 +207,15 @@ export default function IdeaDetails() {
     setActionError('')
 
     try {
+      const token = await getIdToken()
+
       const response = await fetch(
         `${API_URL}/${id}/comments/${commentId}`,
         {
           method: 'DELETE',
           headers: {
-            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            userId: user.uid,
-          }),
         }
       )
 
@@ -260,13 +259,11 @@ export default function IdeaDetails() {
     <div className="min-h-screen px-4 py-12">
       <div className="max-w-5xl mx-auto">
 
-        {/* Back Button */}
         <Link to="/ideas" className="btn btn-ghost mb-6 gap-2">
           <ArrowLeft size={18} />
           Back to Ideas
         </Link>
 
-        {/* Idea Image */}
         {idea.imageUrl && (
           <div className="rounded-2xl overflow-hidden mb-8">
             <img
@@ -277,7 +274,6 @@ export default function IdeaDetails() {
           </div>
         )}
 
-        {/* Idea Header */}
         <div className="mb-8">
           <span className="badge badge-primary badge-outline mb-4">
             {idea.category}
@@ -308,7 +304,6 @@ export default function IdeaDetails() {
             </span>
           </div>
 
-          {/* Like Button */}
           <div className="mt-5">
             <button
               type="button"
@@ -345,7 +340,6 @@ export default function IdeaDetails() {
           </div>
         </div>
 
-        {/* Detailed Description */}
         <div className="card bg-base-100 border border-base-300 shadow-sm mb-6">
           <div className="card-body">
             <h2 className="text-2xl font-bold mb-3">
@@ -357,7 +351,6 @@ export default function IdeaDetails() {
           </div>
         </div>
 
-        {/* Problem Statement */}
         {idea.problemStatement && (
           <div className="card bg-base-100 border border-base-300 shadow-sm mb-6">
             <div className="card-body">
@@ -371,7 +364,6 @@ export default function IdeaDetails() {
           </div>
         )}
 
-        {/* Proposed Solution */}
         {idea.proposedSolution && (
           <div className="card bg-base-100 border border-base-300 shadow-sm mb-6">
             <div className="card-body">
@@ -385,7 +377,6 @@ export default function IdeaDetails() {
           </div>
         )}
 
-        {/* Additional Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
           {idea.targetAudience && (
@@ -415,7 +406,6 @@ export default function IdeaDetails() {
           )}
         </div>
 
-        {/* Tags */}
         {idea.tags?.length > 0 && (
           <div className="card bg-base-100 border border-base-300 shadow-sm mb-6">
             <div className="card-body">
@@ -434,7 +424,6 @@ export default function IdeaDetails() {
           </div>
         )}
 
-        {/* Comments Section */}
         <div className="card bg-base-100 border border-base-300 shadow-sm mt-10">
           <div className="card-body">
 
@@ -443,7 +432,6 @@ export default function IdeaDetails() {
               Comments ({idea.comments?.length || 0})
             </h2>
 
-            {/* Add Comment Form */}
             {user ? (
               <form onSubmit={handleAddComment} className="mt-4">
                 <textarea
@@ -479,12 +467,10 @@ export default function IdeaDetails() {
               </p>
             )}
 
-            {/* Comment Error */}
             {actionError && (
               <p className="text-error text-sm mt-3">{actionError}</p>
             )}
 
-            {/* Comment List */}
             <div className="mt-6 space-y-4">
               {idea.comments?.length > 0 ? (
                 [...idea.comments].reverse().map((comment) => {
@@ -586,7 +572,6 @@ export default function IdeaDetails() {
           </div>
         </div>
 
-        {/* Bottom Button */}
         <div className="text-center mt-10">
           <Link to="/ideas" className="btn btn-primary">
             <ArrowLeft size={18} />
