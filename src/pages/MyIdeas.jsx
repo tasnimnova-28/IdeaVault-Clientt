@@ -17,7 +17,7 @@ import {
 
 import useAuth from '../hooks/useAuth'
 
-const API_URL = 'http://localhost:5000/api/ideas'
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/ideas`
 
 const emptyForm = {
   title: '',
@@ -33,8 +33,9 @@ const emptyForm = {
 }
 
 export default function MyIdeas() {
-    usePageTitle('My Ideas')
-  const { user, loading: authLoading } = useAuth()
+  usePageTitle('My Ideas')
+
+  const { user, getIdToken, loading: authLoading } = useAuth()
 
   const [ideas, setIdeas] = useState([])
   const [loading, setLoading] = useState(true)
@@ -146,10 +147,14 @@ export default function MyIdeas() {
         proposedSolution: editForm.proposedSolution.trim(),
       }
 
+      // Get Firebase authentication token
+      const token = await getIdToken()
+
       const response = await fetch(`${API_URL}/${editingId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updatedData),
       })
@@ -196,8 +201,14 @@ export default function MyIdeas() {
     setSuccessMessage('')
 
     try {
+      // Get Firebase authentication token
+      const token = await getIdToken()
+
       const response = await fetch(`${API_URL}/${ideaId}`, {
         method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
 
       const data = await response.json()
